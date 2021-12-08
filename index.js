@@ -1,31 +1,12 @@
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const Note = require('./models/note')
 const app = express()
 
 app.use(express.static('build'))
 app.use(cors())
 app.use(express.json())
-
-let notes = [
-    {
-        id: 1,
-        content: "HTML is easy",
-        date: "2019-05-30T17:30:31.098Z",
-        important: true
-    },
-    {
-        id: 2,
-        content: "Browser can execute only Javascript",
-        date: "2019-05-30T18:39:34.091Z",
-        important: false
-    },
-    {
-        id: 3,
-        content: "GET and POST are the most important methods of HTTP protocolo",
-        date: "2019-05-30T19:20:14.298Z",
-        important: true
-    }
-]
 
 const requestLogger = (request, response, next) => {
     console.log('Method:', request.method)
@@ -35,10 +16,6 @@ const requestLogger = (request, response, next) => {
     next()
 }
 
-const unknownEndpoint = (request, response) => {
-    response.status(404).send({ error: 'unknown endpoint' })
-}
-
 app.use(requestLogger)
 
 app.get('/', (request, response) => {
@@ -46,49 +23,47 @@ app.get('/', (request, response) => {
 })
 
 app.get('/api/notes', (request, response) => {
-    return response.json(notes)
+    Note.find({})
+        .then(notes => {
+            response.json(notes)
+        })
 })
 
 app.get('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const note = notes.find(note => note.id === id)
-
-    if (note) return response.json(note)
-        return response.status(404).end()
+    Note.findById(request.params.id)
+        .then(note => {
+            response.json(note)
+        })
 })
 
 app.delete('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id)
-    notes = notes.filter(note => note.id !== id)
-
-    return response.status(204).end()
+    Note.findByIdAndRemove(request.params.id)
+        .then(note => {
+            response.json(note)
+        })
 })
-
-const generateId = () => {
-    const ids = notes.map(note => note.id)
-    const maxId = ids.length > 0
-        ? Math.max(...ids)
-        : 0
-    return maxId + 1
-}
 
 app.post('/api/notes', (request, response) => {
     const body = request.body
-    if (!body.content) {
-        return response.status(400).json({
-            error: 'content missing'
-        })
-    }
-    const newNote = {
-        id: generateId(),
-        content: body.content,
-        date: new Date(),
-        important: body.important || false
+    if (body.content === undefined) {
+        return response.status(400).json({ error: 'content missing' })
     }
 
-    notes = [...notes, newNote]
-    return response.status(201).end()
+    const note = new Note({
+        content: body.content,
+        important: body.important || false,
+        date: new Date()
+    })
+
+    note.save()
+        .then(savedNote => {
+            response.status(201).json(savedNote)
+        })
 })
+
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint' })
+}
 
 app.use(unknownEndpoint)
 
