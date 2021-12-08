@@ -2,8 +2,8 @@ const express = require('express')
 const cors = require('cors')
 const app = express()
 
-app.use(cors())
 app.use(express.static('build'))
+app.use(cors())
 app.use(express.json())
 
 let notes = [
@@ -39,15 +39,14 @@ const unknownEndpoint = (request, response) => {
     response.status(404).send({ error: 'unknown endpoint' })
 }
 
-
 app.use(requestLogger)
 
 app.get('/', (request, response) => {
-    response.send('<h1>Hello World!</h1>')
+    return response.send('<h1>Hello World!</h1>')
 })
 
 app.get('/api/notes', (request, response) => {
-    response.json(notes)
+    return response.json(notes)
 })
 
 app.get('/api/notes/:id', (request, response) => {
@@ -55,14 +54,14 @@ app.get('/api/notes/:id', (request, response) => {
     const note = notes.find(note => note.id === id)
 
     if (note) return response.json(note)
-        response.status(404).end()
+        return response.status(404).end()
 })
 
 app.delete('/api/notes/:id', (request, response) => {
     const id = Number(request.params.id)
     notes = notes.filter(note => note.id !== id)
 
-    response.status(204).end()
+    return response.status(204).end()
 })
 
 const generateId = () => {
@@ -88,7 +87,7 @@ app.post('/api/notes', (request, response) => {
     }
 
     notes = [...notes, newNote]
-    response.status(201).end()
+    return response.status(201).end()
 })
 
 app.use(unknownEndpoint)
